@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'chat_service.dart';
+import 'dart:async';
 
 // ChatScreen displays the chat UI
 class ChatScreen extends StatefulWidget {
   final ChatService chatService;
-  const ChatScreen({Key? key, required this.chatService}) : super(key: key);
+  const ChatScreen({super.key, required this.chatService});
 
   @override
   State<ChatScreen> createState() => _ChatScreenState();
@@ -12,64 +13,79 @@ class ChatScreen extends StatefulWidget {
 
 class _ChatScreenState extends State<ChatScreen> {
   final TextEditingController _controller = TextEditingController();
-  // TODO: Add loading/error state if needed
+  final List<String> _messages = [];
+  StreamSubscription<String>? _subscription;
+  String? _error;
 
   @override
   void initState() {
     super.initState();
-    // TODO: Connect to chat service
+    _subscription = widget.chatService.messageStream.listen(
+      (msg) {
+        setState(() {
+          _messages.add(msg);
+        });
+      },
+      onError: (_) {
+        setState(() {
+          _error = 'Connection error';
+        });
+      },
+    );
+    widget.chatService.connect().catchError((_) {
+      setState(() {
+        _error = 'Connection error';
+      });
+    });
   }
 
   @override
   void dispose() {
+    _subscription?.cancel();
     _controller.dispose();
-    // TODO: Dispose chat service if needed
     super.dispose();
   }
 
   void _sendMessage() {
-    // TODO: Send message using chatService
+    final text = _controller.text;
+    if (text.isEmpty) return;
+    _controller.clear();
+    widget.chatService.sendMessage(text).catchError((_) {
+      setState(() {
+        _error = 'Connection error';
+      });
+    });
   }
 
   @override
   Widget build(BuildContext context) {
+    // TODO: Build chat UI with loading, error, and message list
     return Scaffold(
       appBar: AppBar(title: const Text('Chat')),
-      body: Column(
-        children: [
-          Expanded(
-            child: StreamBuilder<String>(
-              stream: widget.chatService.messageStream,
-              builder: (context, snapshot) {
-                // TODO: Display messages, loading, and error states
-                return ListView(
-                  children: [
-                    // TODO: Build message widgets from snapshot.data
-                  ],
-                );
-              },
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Row(
+      body: _error != null
+          ? Center(child: Text(_error!))
+          : Column(
               children: [
                 Expanded(
-                  child: TextField(
-                    controller: _controller,
-                    decoration:
-                        const InputDecoration(hintText: 'Type a message'),
+                  child: ListView.builder(
+                    itemCount: _messages.length,
+                    itemBuilder: (context, index) =>
+                        ListTile(title: Text(_messages[index])),
                   ),
                 ),
-                IconButton(
-                  icon: const Icon(Icons.send),
-                  onPressed: _sendMessage,
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(controller: _controller),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.send),
+                      onPressed: _sendMessage,
+                    ),
+                  ],
                 ),
               ],
             ),
-          ),
-        ],
-      ),
     );
   }
 }
