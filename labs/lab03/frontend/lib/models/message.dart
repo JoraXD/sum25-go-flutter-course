@@ -22,6 +22,31 @@ class Message {
   // TODO: Add toJson() method that returns Map<String, dynamic>
   // Return map with 'id', 'username', 'content', and 'timestamp' keys
   // Convert timestamp to ISO string using toIso8601String()
+  final int id;
+  final String username;
+  final String content;
+  final DateTime timestamp;
+
+  Message({
+    required this.id,
+    required this.username,
+    required this.content,
+    required this.timestamp,
+  });
+
+  factory Message.fromJson(Map<String, dynamic> json) => Message(
+        id: json['id'] as int,
+        username: json['username'] as String,
+        content: json['content'] as String,
+        timestamp: DateTime.parse(json['timestamp'] as String),
+      );
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'username': username,
+        'content': content,
+        'timestamp': timestamp.toIso8601String(),
+      };
 }
 
 class CreateMessageRequest {
@@ -38,6 +63,29 @@ class CreateMessageRequest {
   // Check if username is not empty, return "Username is required" if empty
   // Check if content is not empty, return "Content is required" if empty
   // Return null if validation passes
+  final String username;
+  final String content;
+
+  CreateMessageRequest({
+    required this.username,
+    required this.content,
+  });
+
+  Map<String, dynamic> toJson() => {
+        'username': username,
+        'content': content,
+      };
+
+  /// Returns an error message if invalid, otherwise null.
+  String? validate() {
+    if (username.isEmpty) {
+      return 'Username is required';
+    }
+    if (content.isEmpty) {
+      return 'Content is required';
+    }
+    return null;
+  }
 }
 
 class UpdateMessageRequest {
@@ -52,6 +100,21 @@ class UpdateMessageRequest {
   // TODO: Add validate() method that returns String? (error message or null)
   // Check if content is not empty, return "Content is required" if empty
   // Return null if validation passes
+  final String content;
+
+  UpdateMessageRequest({required this.content});
+
+  Map<String, dynamic> toJson() => {
+        'content': content,
+      };
+
+  /// Returns an error message if invalid, otherwise null.
+  String? validate() {
+    if (content.isEmpty) {
+      return 'Content is required';
+    }
+    return null;
+  }
 }
 
 class HTTPStatusResponse {
@@ -66,6 +129,21 @@ class HTTPStatusResponse {
   // Parse statusCode from json['status_code']
   // Parse imageUrl from json['image_url']
   // Parse description from json['description']
+  final int statusCode;
+  final String imageUrl;
+  final String description;
+
+  HTTPStatusResponse({
+    required this.statusCode,
+    required this.imageUrl,
+    required this.description,
+  });
+
+  factory HTTPStatusResponse.fromJson(Map<String, dynamic> json) => HTTPStatusResponse(
+        statusCode: json['status_code'] as int,
+        imageUrl: json['image_url'] as String,
+        description: json['description'] as String,
+      );
 }
 
 class ApiResponse<T> {
@@ -80,4 +158,30 @@ class ApiResponse<T> {
   // Parse success from json['success']
   // Parse data from json['data'] using fromJsonT if provided and data is not null
   // Parse error from json['error']
+  final bool success;
+  final T? data;
+  final String? error;
+
+  ApiResponse({
+    required this.success,
+    this.data,
+    this.error,
+  });
+
+  factory ApiResponse.fromJson(
+    Map<String, dynamic> json,
+    T Function(Map<String, dynamic>)? fromJsonT,
+  ) {
+    final success = json['success'] as bool;
+    T? data;
+    if (json.containsKey('data') && json['data'] != null && fromJsonT != null) {
+      data = fromJsonT(json['data'] as Map<String, dynamic>);
+    }
+    final error = json['error'] as String?;
+    return ApiResponse<T>(
+      success: success,
+      data: data,
+      error: error,
+    );
+  }
 }
