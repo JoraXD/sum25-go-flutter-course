@@ -2,13 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'screens/chat_screen.dart';
 import 'services/api_service.dart';
+import 'models/message.dart';
 
-void main() {
-  runApp(const MyApp());
-}
+void main() => runApp(const MyApp());
 
 class MyApp extends StatelessWidget {
-  const MyApp({Key? key}) : super(key: key);
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -16,44 +15,33 @@ class MyApp extends StatelessWidget {
       providers: [
         Provider<ApiService>(
           create: (_) => ApiService(),
-          dispose: (_, service) => service.dispose(),
+          dispose: (_, api) => api.dispose(),
+        ),
+        ChangeNotifierProxyProvider<ApiService, ChatProvider>(
+          create: (context) =>
+              ChatProvider(Provider.of<ApiService>(context, listen: false)),
+          update: (context, api, previous) => previous ?? ChatProvider(api),
         ),
       ],
       child: MaterialApp(
         title: 'Lab 03 REST API Chat',
         theme: ThemeData(
           primarySwatch: Colors.blue,
-          colorScheme: ColorScheme.fromSwatch(
-            primarySwatch: Colors.blue,
-          ).copyWith(
-            secondary: Colors.orange,
-          ),
-          appBarTheme: const AppBarTheme(
-            backgroundColor: Colors.blue,
-            foregroundColor: Colors.white,
-          ),
-          elevatedButtonTheme: ElevatedButtonThemeData(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.orange,
-            ),
-          ),
           useMaterial3: true,
         ),
         home: const ChatScreen(),
-        // Note: You can add onGenerateRoute, errorBuilder, or splash screen here
       ),
     );
   }
 }
 
-// Provider class for managing app state
 class ChatProvider extends ChangeNotifier {
   final ApiService _apiService;
+  ChatProvider(this._apiService);
+
   List<Message> _messages = [];
   bool _isLoading = false;
   String? _error;
-
-  ChatProvider(this._apiService);
 
   List<Message> get messages => _messages;
   bool get isLoading => _isLoading;
@@ -73,9 +61,9 @@ class ChatProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> createMessage(CreateMessageRequest request) async {
+  Future<void> createMessage(CreateMessageRequest req) async {
     try {
-      final msg = await _apiService.createMessage(request);
+      final msg = await _apiService.createMessage(req);
       _messages.add(msg);
       notifyListeners();
     } catch (e) {
@@ -84,11 +72,11 @@ class ChatProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> updateMessage(int id, UpdateMessageRequest request) async {
+  Future<void> updateMessage(int id, UpdateMessageRequest req) async {
     try {
-      final updated = await _apiService.updateMessage(id, request);
+      final msg = await _apiService.updateMessage(id, req);
       final idx = _messages.indexWhere((m) => m.id == id);
-      if (idx != -1) _messages[idx] = updated;
+      if (idx != -1) _messages[idx] = msg;
       notifyListeners();
     } catch (e) {
       _error = e.toString();
@@ -108,7 +96,7 @@ class ChatProvider extends ChangeNotifier {
   }
 
   Future<void> refreshMessages() async {
-    _messages.clear();
+    _messages = [];
     await loadMessages();
   }
 
@@ -117,3 +105,4 @@ class ChatProvider extends ChangeNotifier {
     notifyListeners();
   }
 }
+
