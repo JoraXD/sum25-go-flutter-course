@@ -1,14 +1,12 @@
 # Build stage
-FROM golang:1.24-alpine AS builder
+FROM golang:1.21-alpine AS builder
 WORKDIR /app
-COPY go.mod ./
+COPY go.mod .
 RUN go mod download
+COPY main.go .
+RUN go build -o hello-world .
 
-COPY . .
-RUN CGO_ENABLED=0 GOOS=linux go build -o hello
-# Final image
-FROM gcr.io/distroless/base-debian11
-WORKDIR /
-COPY --from=builder /app/hello /hello
-
-ENTRYPOINT ["/hello"]
+FROM alpine:latest
+WORKDIR /root/
+COPY --from=builder /app/hello-world .
+CMD ["./hello-world"]
