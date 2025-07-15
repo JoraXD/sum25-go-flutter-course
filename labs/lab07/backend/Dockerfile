@@ -5,7 +5,6 @@ COPY go.mod ./
 RUN go mod download
 COPY . .
 RUN  go build -o main .
-
 # Final image
 FROM alpine:latest
 RUN apk --no-cache add ca-certificates tzdata
